@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BMI Calculator • เว็บแอปคำนวณดัชนีมวลกาย</title>
+  <meta name="description" content="เว็บแอปคำนวณ BMI (ดัชนีมวลกาย) รองรับหน่วยเมตริก/อังกฤษ แสดงหมวดหมู่และช่วงน้ำหนักสุขภาพ พร้อมตรวจสอบข้อมูลแบบเรียลไทม์" />
+  <style>
+    :root{
+      --bg: #0f172a; /* slate-900 */
+      --card: #111827ee; /* gray-900 */
+      --muted: #9ca3af; /* gray-400 */
+      --text: #e5e7eb; /* gray-200 */
+      --accent: #22c55e; /* green-500 */
+      --accent-2: #3b82f6; /* blue-500 */
+      --warning: #f59e0b; /* amber-500 */
+      --danger: #ef4444; /* red-500 */
+      --ring: #60a5fa55; /* ring */
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 20% 0%, #1e293b 0%, transparent 60%),
+                  radial-gradient(800px 500px at 80% 0%, #0b5cff20 0%, transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      display:grid; place-items:center; padding:24px;
+    }
+    .app{
+      width:min(880px, 100%);
+      background:linear-gradient(180deg, #0b1220cc, #0b1220cc), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 10 10"><path d="M0 0h10v10H0z" fill="none"/><path d="M0 5h10M5 0v10" stroke="%231e293b" stroke-width="0.2"/></svg>');
+      border:1px solid #1f2937; border-radius: var(--radius); box-shadow: 0 20px 60px #0008;
+      overflow:hidden;
+    }
+    header{
+      padding:24px 24px 8px; border-bottom:1px solid #1f2937;
+      background: linear-gradient(180deg, #0b1220 0%, #0b1220cc 100%);
+    }
+    h1{margin:0; font-size: clamp(22px, 2.6vw, 30px); letter-spacing:0.2px}
+    .sub{color:var(--muted); margin-top:6px; font-size:14px}
+    .grid{display:grid; gap:16px; padding:20px; grid-template-columns: 1fr;}
+    @media (min-width: 720px){ .grid{ grid-template-columns: 1.2fr 1fr; } }
+    .card{ background:#0f172a; border:1px solid #1f2937; border-radius: var(--radius); padding:18px; }
+    .row{ display:grid; gap:10px; grid-template-columns: 1fr 1fr; }
+    .row-3{ display:grid; gap:10px; grid-template-columns: 1fr 1fr 1fr; }
+    label{ font-size:13px; color:var(--muted); }
+    .field{ display:flex; flex-direction:column; gap:6px; }
+    .ctrl{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    input[type="number"]{
+      width:100%; padding:12px 14px; border-radius:12px; border:1px solid #1f2937; background:#0b1220; color:var(--text);
+      outline: none; transition: border .15s, box-shadow .15s;
+    }
+    input[type="number"]:focus{ border-color:#2e72ff; box-shadow: 0 0 0 6px var(--ring); }
+    .seg{
+      background:#0b1220; border:1px solid #1f2937; border-radius:999px; padding:4px; display:inline-flex; gap:4px;
+    }
+    .seg button{ border:0; background:transparent; color:var(--muted); padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600; }
+    .seg button.active{ background:#1f2937; color:#cfe0ff; }
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+    .btn{ padding:12px 14px; border-radius:12px; border:1px solid #1f2937; background:#111827; color:#e5e7eb; cursor:pointer; font-weight:700; }
+    .btn.primary{ background:linear-gradient(180deg, #2563eb, #1d4ed8); border-color:#1d4ed8; }
+    .btn.ghost{ background:transparent; }
+    .helper{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+    .result{
+      display:grid; gap:16px; align-content:start;
+    }
+    .badge{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; font-weight:800; letter-spacing:0.2px; }
+    .badge .dot{ width:10px; height:10px; border-radius:50%; background:#999; box-shadow:0 0 0 3px #ffffff10 inset; }
+    .meter{ height:12px; background:#0b1220; border:1px solid #1f2937; border-radius:999px; overflow:hidden; }
+    .meter .bar{ height:100%; width:0%; background: linear-gradient(90deg, #10b981, #22c55e); transition: width .3s ease; }
+    .tiles{ display:grid; gap:10px; grid-template-columns:1fr 1fr; }
+    .tile{ background:#0b1220; border:1px solid #1f2937; border-radius:14px; padding:14px; display:grid; gap:6px; }
+    .tile .k{ color:var(--muted); font-size:12px }
+    .tile .v{ font-size:22px; font-weight:800 }
+    .list{ font-size:14px; color:#cbd5e1; margin:0; padding-left:18px; }
+    .err{ color:var(--danger); font-size:13px; }
+    footer{ padding:14px 20px; color:#94a3b8; font-size:12px; border-top:1px solid #1f2937; text-align:center }
+    a{ color:#9db8ff }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="BMI Calculator">
+    <header>
+      <h1>คำนวณ BMI (ดัชนีมวลกาย)</h1>
+      <div class="sub">รองรับหน่วยเมตริก/อังกฤษ • คำนวณแบบเรียลไทม์ • แสดงหมวดหมู่และช่วงน้ำหนักสุขภาพ</div>
+    </header>
+
+    <section class="grid">
+      <!-- Inputs -->
+      <div class="card" aria-labelledby="inputs-title">
+        <h2 id="inputs-title" style="margin:0 0 8px; font-size:18px">กรอกข้อมูล</h2>
+
+        <div class="ctrl" role="radiogroup" aria-label="เลือกหน่วย">
+          <div class="seg" id="unitSeg">
+            <button type="button" class="active" data-unit="metric" aria-pressed="true">เมตริก (กก./ซม.)</button>
+            <button type="button" data-unit="imperial" aria-pressed="false">อังกฤษ (ปอนด์/ฟุต)</button>
+          </div>
+        </div>
+
+        <div id="metricFields" style="margin-top:14px; display:grid; gap:12px;">
+          <div class="row">
+            <div class="field">
+              <label for="heightCm">ส่วนสูง (ซม.)</label>
+              <input id="heightCm" type="number" inputmode="decimal" min="50" max="260" step="0.1" placeholder="เช่น 165" />
+              <div class="helper">ระบุ 50–260 ซม.</div>
+            </div>
+            <div class="field">
+              <label for="weightKg">น้ำหนัก (กก.)</label>
+              <input id="weightKg" type="number" inputmode="decimal" min="20" max="300" step="0.1" placeholder="เช่น 55" />
+              <div class="helper">ระบุ 20–300 กก.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="imperialFields" style="margin-top:14px; display:none; gap:12px;">
+          <div class="row-3">
+            <div class="field">
+              <label for="heightFt">ส่วนสูง (ฟุต)</label>
+              <input id="heightFt" type="number" inputmode="numeric" min="3" max="8" step="1" placeholder="เช่น 5" />
+              <div class="helper">ระบุ 3–8 ฟุต</div>
+            </div>
+            <div class="field">
+              <label for="heightIn">ส่วนสูง (นิ้ว)</label>
+              <input id="heightIn" type="number" inputmode="decimal" min="0" max="11.9" step="0.1" placeholder="เช่น 6" />
+              <div class="helper">0–11.9 นิ้ว</div>
+            </div>
+            <div class="field">
+              <label for="weightLb">น้ำหนัก (ปอนด์)</label>
+              <input id="weightLb" type="number" inputmode="decimal" min="44" max="660" step="0.1" placeholder="เช่น 121" />
+              <div class="helper">ระบุ 44–660 ปอนด์</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="error" class="err" role="alert" style="min-height:18px; margin-top:6px;"></div>
+
+        <div class="actions">
+          <button id="calcBtn" class="btn primary">คำนวณ</button>
+          <button id="resetBtn" class="btn ghost">ล้างค่า</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="card result" aria-live="polite">
+        <h2 style="margin:0 0 4px; font-size:18px">ผลลัพธ์</h2>
+        <div class="badge" id="badge" style="background:#111827; border:1px solid #1f2937;">
+          <span class="dot" id="dot"></span>
+          <span id="status">กรอกข้อมูลเพื่อดูผลลัพธ์</span>
+        </div>
+
+        <div class="meter" aria-label="แถบแสดงค่า BMI">
+          <div class="bar" id="bar" style="width:0%"></div>
+        </div>
+
+        <div class="tiles">
+          <div class="tile">
+            <div class="k">ค่า BMI</div>
+            <div class="v" id="bmiValue">—</div>
+          </div>
+          <div class="tile">
+            <div class="k">หมวดหมู่</div>
+            <div class="v" id="bmiCat">—</div>
+          </div>
+          <div class="tile">
+            <div class="k">ช่วงน้ำหนักสุขภาพ (กก.)</div>
+            <div class="v" id="healthyKg">—</div>
+          </div>
+          <div class="tile">
+            <div class="k">ช่วงน้ำหนักสุขภาพ (ปอนด์)</div>
+            <div class="v" id="healthyLb">—</div>
+          </div>
+        </div>
+
+        <ul class="list">
+          <li><strong>ต่ำกว่า 18.5</strong> = ผอมเกินไป</li>
+          <li><strong>18.5 – 24.9</strong> = น้ำหนักปกติ</li>
+          <li><strong>25.0 – 29.9</strong> = น้ำหนักเกิน</li>
+          <li><strong>≥ 30.0</strong> = โรคอ้วน</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      สร้างด้วย HTML + CSS + JavaScript (ไฟล์เดียว) • เคารพความเป็นส่วนตัว: ไม่มีการส่งข้อมูลออกนอกอุปกรณ์
+    </footer>
+  </div>
+
+  <script>
+    const $ = (s, p=document) => p.querySelector(s);
+    const $$ = (s, p=document) => [...p.querySelectorAll(s)];
+
+    const unitSeg = $('#unitSeg');
+    const metricFields = $('#metricFields');
+    const imperialFields = $('#imperialFields');
+
+    const inputs = {
+      heightCm: $('#heightCm'),
+      weightKg: $('#weightKg'),
+      heightFt: $('#heightFt'),
+      heightIn: $('#heightIn'),
+      weightLb: $('#weightLb'),
+    };
+
+    const out = {
+      error: $('#error'),
+      bmiValue: $('#bmiValue'),
+      bmiCat: $('#bmiCat'),
+      badge: $('#badge'),
+      dot: $('#dot'),
+      bar: $('#bar'),
+      status: $('#status'),
+      healthyKg: $('#healthyKg'),
+      healthyLb: $('#healthyLb'),
+    };
+
+    let unit = 'metric';
+
+    unitSeg.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-unit]');
+      if(!btn) return;
+      unit = btn.dataset.unit;
+      $$('#unitSeg button').forEach(b => { b.classList.toggle('active', b === btn); b.setAttribute('aria-pressed', b===btn ? 'true':'false'); });
+      metricFields.style.display = unit === 'metric' ? 'grid' : 'none';
+      imperialFields.style.display = unit === 'imperial' ? 'grid' : 'none';
+      clearError();
+      calculate(); // recalc with what's available
+    });
+
+    function showError(msg){ out.error.textContent = msg || ''; }
+    function clearError(){ showError(''); }
+
+    function toMetric(){
+      if(unit === 'metric'){
+        const h = parseFloat(inputs.heightCm.value);
+        const w = parseFloat(inputs.weightKg.value);
+        if(Number.isFinite(h) && Number.isFinite(w)) return { heightCm: h, weightKg: w };
+        return null;
+      } else {
+        const ft = parseFloat(inputs.heightFt.value);
+        const inch = parseFloat(inputs.heightIn.value);
+        const lb = parseFloat(inputs.weightLb.value);
+        if(!Number.isFinite(ft) && !Number.isFinite(inch) && !Number.isFinite(lb)) return null;
+        const totalIn = (Number.isFinite(ft)? ft:0) * 12 + (Number.isFinite(inch)? inch:0);
+        const heightCm = totalIn * 2.54; // 1 in = 2.54 cm
+        const weightKg = (Number.isFinite(lb)? lb:0) * 0.45359237; // 1 lb = 0.45359237 kg
+        if(totalIn <= 0 || weightKg <= 0) return null;
+        return { heightCm, weightKg };
+      }
+    }
+
+    function calcBMI(heightCm, weightKg){
+      const m = heightCm / 100;
+      if(m <= 0) return null;
+      return weightKg / (m*m);
+    }
+
+    function category(bmi){
+      if(bmi == null || !Number.isFinite(bmi)) return { name: '—', color:'#6b7280'};
+      if(bmi < 18.5) return { name:'ผอมเกินไป', color:'#3b82f6'}; // blue
+      if(bmi < 25) return { name:'น้ำหนักปกติ', color:'#22c55e'}; // green
+      if(bmi < 30) return { name:'น้ำหนักเกิน', color:'#f59e0b'}; // amber
+      return { name:'โรคอ้วน', color:'#ef4444'}; // red
+    }
+
+    function healthyRange(heightCm){
+      const m2 = Math.pow(heightCm/100, 2);
+      const min = 18.5 * m2;
+      const max = 24.9 * m2;
+      return { minKg: min, maxKg: max, minLb: min/0.45359237, maxLb: max/0.45359237 };
+    }
+
+    function fmt(n, d=1){ return Number.isFinite(n) ? n.toFixed(d) : '—'; }
+
+    function calculate(){
+      const m = toMetric();
+      if(!m){
+        out.status.textContent = 'กรอกข้อมูลเพื่อดูผลลัพธ์';
+        out.bmiValue.textContent = '—';
+        out.bmiCat.textContent = '—';
+        out.bar.style.width = '0%';
+        out.badge.style.borderColor = '#1f2937';
+        out.dot.style.background = '#6b7280';
+        out.healthyKg.textContent = '—';
+        out.healthyLb.textContent = '—';
+        return;
+      }
+      const bmi = calcBMI(m.heightCm, m.weightKg);
+      if(!Number.isFinite(bmi) || bmi <= 0){ showError('กรุณากรอกข้อมูลให้ถูกต้อง'); return; }
+      clearError();
+
+      const cat = category(bmi);
+      out.bmiValue.textContent = fmt(bmi, 1);
+      out.bmiCat.textContent = cat.name;
+      out.status.textContent = `BMI: ${fmt(bmi,1)} • ${cat.name}`;
+      out.badge.style.borderColor = cat.color + '55';
+      out.badge.style.background = '#0b1220';
+      out.dot.style.background = cat.color;
+
+      // map BMI 15-40 to 0-100%
+      const pct = Math.max(0, Math.min(100, ((bmi - 15) / (40-15)) * 100));
+      out.bar.style.width = pct + '%';
+
+      const hr = healthyRange(m.heightCm);
+      out.healthyKg.textContent = `${fmt(hr.minKg,1)} – ${fmt(hr.maxKg,1)}`;
+      out.healthyLb.textContent = `${fmt(hr.minLb,1)} – ${fmt(hr.maxLb,1)}`;
+    }
+
+    // Events
+    $$('#metricFields input, #imperialFields input').forEach(el => {
+      el.addEventListener('input', () => { calculate(); });
+    });
+    $('#calcBtn').addEventListener('click', (e)=>{ e.preventDefault(); calculate(); });
+    $('#resetBtn').addEventListener('click', (e)=>{
+      e.preventDefault();
+      Object.values(inputs).forEach(i => i.value = '');
+      calculate();
+      inputs.heightCm.focus();
+    });
+
+    // Prefill example for quick demo
+    inputs.heightCm.value = '165';
+    inputs.weightKg.value = '55';
+    calculate();
+  </script>
+</body>
+</html>
